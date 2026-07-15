@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PAUSE — a garden for the moments that stopped you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,300..500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   PAUSE — design tokens
+   Palette: paper, charcoal, sage, moss, stone, sand, forest, gold
+   Type: Pixelify Sans (headings, retro-handheld voice) /
+         Source Serif 4 (body, calm reading)
+   Signature: the raked sand garden — stones you place, sand you rake
+   ============================================================ */
+:root{
+  --paper:      #EFE7D8;
+  --paper-2:    #E6DBC5;
+  --charcoal:   #2B2621;
+  --charcoal-70: rgba(43,38,33,.7);
+  --sage:       #8B9A7B;
+  --moss:       #5F7052;
+  --stone:      #8C8577;
+  --sand:       #DCC9A3;
+  --sand-2:     #CDB98D;
+  --forest:     #2F3D2B;
+  --gold:       #C9A050;
+  --line:       rgba(43,38,33,.16);
+  --radius:     14px;
+  --shadow:     0 6px 18px rgba(43,38,33,.12);
+  --font-head:  'Pixelify Sans', system-ui, sans-serif;
+  --font-body:  'Source Serif 4', Georgia, serif;
+  --dur: .5s;
+  --ease: cubic-bezier(.4,0,.2,1);
+}
+@media (prefers-reduced-motion: reduce){
+  :root{ --dur: .001s; }
+}
+html.high-contrast{
+  --paper: #FFFFFF;
+  --charcoal: #000000;
+  --sage: #2F5C1E;
+  --moss: #1F4014;
+  --stone: #3A3A3A;
+  --sand: #E9DEC2;
+  --forest: #10200C;
+  --gold: #8A6200;
+  --line: rgba(0,0,0,.4);
+}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: var(--font-body);
+  background: var(--paper);
+  color: var(--charcoal);
+  -webkit-font-smoothing: antialiased;
+  overflow-x:hidden;
+}
+#app{
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  position: relative;
+  background:
+    radial-gradient(1200px 400px at 50% -10%, var(--paper-2), transparent 60%),
+    var(--paper);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.screen{
+  position:absolute; inset:0;
+  padding: 28px 22px 100px;
+  opacity:0; pointer-events:none;
+  transform: translateY(10px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  display:flex; flex-direction:column;
+}
+.screen.active{ opacity:1; pointer-events:auto; transform:none; position:relative; }
+h1,h2,h3{ font-family: var(--font-head); font-weight:600; letter-spacing:.02em; margin:0 0 8px; color:var(--forest); }
+h1{ font-size: 28px; line-height:1.25; }
+h2{ font-size: 20px; }
+h3{ font-size: 15px; }
+p{ margin:0 0 12px; line-height:1.55; color: var(--charcoal-70); }
+.eyebrow{
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--moss);
+  margin-bottom: 6px;
+}
+button{ font-family: inherit; cursor:pointer; }
+.btn{
+  appearance:none; border:none; border-radius: 999px;
+  padding: 14px 22px;
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing:.02em;
+  background: var(--forest);
+  color: var(--paper);
+  box-shadow: var(--shadow);
+  transition: transform .2s var(--ease), background .2s var(--ease);
+  min-height: 48px;
+}
+.btn:hover{ transform: translateY(-1px); }
+.btn:active{ transform: translateY(0); }
+.btn:focus-visible, a:focus-visible, .card:focus-visible, .chip:focus-visible, [tabindex]:focus-visible{
+  outline: 3px solid var(--gold); outline-offset: 2px;
+}
+.btn.secondary{
+  background: transparent; color: var(--forest);
+  border: 1.5px solid var(--forest); box-shadow:none;
+}
+.btn.ghost{
+  background: transparent; color: var(--charcoal-70);
+  border: 1px solid var(--line); box-shadow:none; font-family:var(--font-body); font-size:14px;
+}
+.btn[disabled]{ opacity:.4; cursor:not-allowed; transform:none; }
+
+/* ---------- Welcome ---------- */
+#screen-welcome{ align-items:center; justify-content:center; text-align:center; }
+.leaf-wrap{ position:relative; width:100%; height:120px; margin-bottom: 6px; }
+.leaf{
+  position:absolute; top:0; left:50%;
+  width:22px; height:22px;
+  animation: fall 7s ease-in-out infinite;
+}
+@keyframes fall{
+  0%{ transform: translate(-50%,0) rotate(0deg); opacity:0; }
+  10%{ opacity:1; }
+  100%{ transform: translate(calc(-50% + 40px), 110px) rotate(140deg); opacity:0; }
+}
+.logo{
+  font-family: var(--font-head);
+  font-size: 44px;
+  letter-spacing:.1em;
+  color: var(--forest);
+  margin: 0;
+}
+.tagline{ font-style:italic; max-width:280px; margin: 6px auto 30px; }
+.welcome-actions{ display:flex; flex-direction:column; gap:10px; width:100%; max-width:260px; }
+
+/* ---------- Period cards ---------- */
+.card-grid{ display:flex; flex-direction:column; gap:14px; margin-top: 8px; }
+.card{
+  text-align:left;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  display:flex; align-items:center; gap:14px;
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+.card:hover{ transform: translateY(-2px); box-shadow: var(--shadow); }
+.card .icon{ font-size:26px; width:40px; text-align:center; flex-shrink:0; }
+.card .label{ font-family: var(--font-head); font-size:15px; color:var(--forest); margin-bottom:2px; }
+.card .desc{ font-size:13px; color:var(--charcoal-70); margin:0; }
+
+/* ---------- Collect ---------- */
+.progress-dots{ display:flex; gap:6px; margin-bottom:18px; }
+.progress-dots span{ width:7px; height:7px; border-radius:50%; background: var(--line); }
+.progress-dots span.on{ background: var(--moss); }
+.chip-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin: 10px 0 20px; }
+.chip{
+  background: var(--paper-2); border:1px solid var(--line); border-radius: 12px;
+  padding: 14px 10px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px;
+  transition: transform .15s var(--ease), border-color .15s var(--ease), background .15s var(--ease);
+}
+.chip .glyph{ font-size:22px; }
+.chip .name{ font-family: var(--font-head); font-size:12px; color:var(--forest); }
+.chip[aria-pressed="true"]{ border-color: var(--moss); background: rgba(95,112,82,.16); transform: translateY(-1px); }
+.chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 20px; }
+.chip-row .chip{ flex-direction:row; padding: 9px 14px; }
+.chip-row .chip .glyph{ font-size:15px; }
+textarea{
+  width:100%; min-height:80px; resize:vertical;
+  font-family: var(--font-body); font-size:15px; padding:12px 14px;
+  border-radius:12px; border:1px solid var(--line); background: var(--paper-2);
+  color: var(--charcoal);
+}
+textarea:focus-visible{ outline:3px solid var(--gold); outline-offset:1px; }
+.char-count{ font-size:12px; text-align:right; color:var(--charcoal-70); margin-top:4px; }
+.collect-actions{ margin-top:auto; display:flex; gap:10px; padding-top:16px; }
+.collect-actions .btn{ flex:1; }
+
+/* ---------- Garden ---------- */
+#screen-garden{ padding-bottom: 96px; }
+.garden-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+.garden-frame{
+  position:relative; border-radius: var(--radius); overflow:hidden;
+  border:1px solid var(--line); box-shadow: var(--shadow);
+  aspect-ratio: 4/5; background: var(--sand);
+  touch-action:none;
+}
+#rakeCanvas{ position:absolute; inset:0; width:100%; height:100%; }
+#stoneLayer{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.stone-svg{ position:absolute; filter: drop-shadow(0 3px 3px rgba(43,38,33,.25)); pointer-events:auto; cursor:pointer; }
+.garden-hint{ font-size:12.5px; text-align:center; margin-top:8px; color: var(--charcoal-70); }
+.garden-empty{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  text-align:center; padding: 30px; font-size:14px; color: var(--charcoal-70);
+}
+.stone-count-pill{
+  font-family: var(--font-head); font-size:12px; background: var(--paper-2);
+  border:1px solid var(--line); border-radius:999px; padding:6px 12px; color:var(--forest);
+}
+
+/* ---------- Bottom nav ---------- */
+.bottom-nav{
+  position:absolute; left:0; right:0; bottom:0;
+  display:flex; justify-content:space-around;
+  background: var(--paper-2); border-top:1px solid var(--line);
+  padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+  z-index: 5;
+}
+.nav-btn{
+  background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:2px;
+  font-family: var(--font-head); font-size:10px; color: var(--charcoal-70); padding:6px 10px; border-radius:10px;
+}
+.nav-btn .glyph{ font-size:18px; }
+.nav-btn[aria-current="true"]{ color: var(--forest); background: rgba(95,112,82,.14); }
+
+/* ---------- Timeline / list ---------- */
+.timeline-item{
+  display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--line);
+}
+.timeline-item .glyph{ font-size:22px; width:30px; text-align:center; padding-top:2px; }
+.timeline-item .meta{ font-size:12px; color: var(--charcoal-70); margin-bottom:2px; }
+.timeline-item .note{ font-size:14px; }
+.timeline-item .row-actions{ margin-left:auto; display:flex; gap:6px; align-self:flex-start; }
+.icon-btn{
+  background:none; border:1px solid var(--line); border-radius:8px; width:30px; height:30px;
+  font-size:13px; color: var(--charcoal-70);
+}
+
+/* ---------- Reflection modal ---------- */
+.modal-backdrop{
+  position:absolute; inset:0; background: rgba(43,38,33,.55);
+  display:flex; align-items:flex-end; z-index: 20;
+  opacity:0; pointer-events:none; transition: opacity var(--dur) var(--ease);
+}
+.modal-backdrop.show{ opacity:1; pointer-events:auto; }
+.modal-sheet{
+  background: var(--paper); width:100%; border-radius: 22px 22px 0 0;
+  padding: 26px 22px calc(26px + env(safe-area-inset-bottom));
+  transform: translateY(30px); transition: transform var(--dur) var(--ease);
+  max-height: 82vh; overflow-y:auto;
+}
+.modal-backdrop.show .modal-sheet{ transform: translateY(0); }
+.modal-sheet .btn{ width:100%; margin-top:12px; }
+
+/* ---------- Top bar / settings ---------- */
+.topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px; }
+.icon-toggle{
+  background:none; border:1px solid var(--line); border-radius:999px;
+  padding:6px 12px; font-size:12px; font-family: var(--font-head); color: var(--charcoal-70);
+}
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+.limit-note{
+  background: rgba(201,160,80,.16); border:1px solid rgba(201,160,80,.4);
+  border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:12px;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Live region for gentle, non-visual announcements -->
+  <div aria-live="polite" class="sr-only" id="liveRegion"></div>
+
+  <!-- ============ SCREEN: WELCOME ============ -->
+  <section class="screen active" id="screen-welcome" aria-label="Welcome">
+    <div class="topbar">
+      <span></span>
+      <button class="icon-toggle" id="contrastToggle" aria-pressed="false">High contrast</button>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+      <div class="leaf-wrap" aria-hidden="true">
+        <svg class="leaf" viewBox="0 0 24 24" style="animation-delay:0s;"><path d="M12 2C6 6 4 12 8 18c2 3 6 4 8 3-3-1-5-3-6-6 3 1 6 0 7-3 1-3-1-7-5-8-1 2-2 4-2 7-1-4 0-8 2-11z" fill="#5F7052"/></svg>
+        <svg class="leaf" viewBox="0 0 24 24" style="left:60%; animation-delay:2.4s;"><path d="M12 2C6 6 4 12 8 18c2 3 6 4 8 3-3-1-5-3-6-6 3 1 6 0 7-3 1-3-1-7-5-8-1 2-2 4-2 7-1-4 0-8 2-11z" fill="#8B9A7B"/></svg>
+        <svg class="leaf" viewBox="0 0 24 24" style="left:30%; animation-delay:4.8s;"><path d="M12 2C6 6 4 12 8 18c2 3 6 4 8 3-3-1-5-3-6-6 3 1 6 0 7-3 1-3-1-7-5-8-1 2-2 4-2 7-1-4 0-8 2-11z" fill="#C9A050"/></svg>
+      </div>
+      <h1 class="logo">PAUSE</h1>
+      <p class="tagline">Observe the moments that quietly changed your day.</p>
+      <div class="welcome-actions">
+        <button class="btn" id="beginBtn">Begin</button>
+        <button class="btn ghost" id="viewGardenFromWelcome">Visit my garden</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN: PERIOD ============ -->
+  <section class="screen" id="screen-period" aria-label="Choose a reflection period">
+    <div class="eyebrow">Step one</div>
+    <h2>What are you reflecting on?</h2>
+    <p>Choose how far back to look. You can change this any time.</p>
+    <div class="card-grid" role="list">
+      <button class="card" role="listitem" data-period="today">
+        <span class="icon">🌤</span>
+        <span>
+          <span class="label">Today</span>
+          <p class="desc">Notice what's already happened since morning.</p>
+        </span>
+      </button>
+      <button class="card" role="listitem" data-period="week">
+        <span class="icon">🍃</span>
+        <span>
+          <span class="label">This week</span>
+          <p class="desc">Look back across the last several days.</p>
+        </span>
+      </button>
+      <button class="card" role="listitem" data-period="month">
+        <span class="icon">🌙</span>
+        <span>
+          <span class="label">This month</span>
+          <p class="desc">A slower, wider view of your attention.</p>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN: COLLECT ============ -->
+  <section class="screen" id="screen-collect" aria-label="Record a pause">
+    <div class="topbar">
+      <button class="btn ghost" id="collectBack" aria-label="Go back">← Back</button>
+      <span class="eyebrow" id="periodLabel"></span>
+    </div>
+    <div class="progress-dots" id="progressDots" aria-hidden="true">
+      <span class="on"></span><span></span><span></span>
+    </div>
+
+    <div id="stepCategory">
+      <h2>What made you pause?</h2>
+      <p>Choose the one that feels closest.</p>
+      <div class="chip-grid" id="categoryGrid" role="group" aria-label="Pause type"></div>
+    </div>
+
+    <div id="stepLocation" hidden>
+      <h2>Where were you?</h2>
+      <p>Optional — skip if you'd rather not say.</p>
+      <div class="chip-row" id="locationGrid" role="group" aria-label="Location, optional"></div>
+    </div>
+
+    <div id="stepNote" hidden>
+      <h2>One sentence, if you like</h2>
+      <p>Optional. 120 characters at most.</p>
+      <textarea id="noteInput" maxlength="120" placeholder="The security guard remembered my name." aria-label="A short reflection, optional"></textarea>
+      <div class="char-count"><span id="charCount">0</span>/120</div>
+    </div>
+
+    <div class="collect-actions">
+      <button class="btn secondary" id="stepBackBtn" hidden>Back</button>
+      <button class="btn" id="stepNextBtn" disabled>Continue</button>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN: GARDEN ============ -->
+  <section class="screen" id="screen-garden" aria-label="Your garden">
+    <div class="garden-header">
+      <div>
+        <div class="eyebrow" id="gardenPeriodLabel">Today</div>
+        <h2 style="margin-bottom:0;">Garden of Pause</h2>
+      </div>
+      <span class="stone-count-pill" id="stoneCountPill">0 stones</span>
+    </div>
+    <p style="margin-bottom:12px;">Drag a finger or the cursor across the sand to rake it. Tap a stone to hear what it remembers.</p>
+    <div class="garden-frame" id="gardenFrame">
+      <canvas id="rakeCanvas"></canvas>
+      <div id="stoneLayer" role="list" aria-label="Stones placed in the garden"></div>
+      <div class="garden-empty" id="gardenEmpty">Your garden is still bare sand.<br>Place your first stone to begin.</div>
+    </div>
+    <p class="garden-hint" id="ambientHint">A light wind moves through the garden.</p>
+  </section>
+
+  <!-- ============ SCREEN: TIMELINE ============ -->
+  <section class="screen" id="screen-timeline" aria-label="Your recorded pauses">
+    <div class="eyebrow">Today's moments</div>
+    <h2 style="margin-bottom:4px;">All your stones</h2>
+    <p id="limitLine"></p>
+    <div id="timelineList"></div>
+    <div id="timelineEmptyState" hidden style="text-align:center; padding:40px 10px; color:var(--charcoal-70);">
+      Nothing recorded yet. Whenever a moment stops you, come back and place a stone.
+    </div>
+  </section>
+
+  <!-- Bottom navigation -->
+  <nav class="bottom-nav" id="bottomNav" aria-label="Main">
+    <button class="nav-btn" data-nav="collect" aria-current="false"><span class="glyph">✎</span>Record</button>
+    <button class="nav-btn" data-nav="garden" aria-current="false"><span class="glyph">⛰</span>Garden</button>
+    <button class="nav-btn" data-nav="timeline" aria-current="false"><span class="glyph">☰</span>Moments</button>
+    <button class="nav-btn" data-nav="reflect" aria-current="false"><span class="glyph">✺</span>Reflect</button>
+  </nav>
+
+  <!-- Reflection modal -->
+  <div class="modal-backdrop" id="reflectModal">
+    <div class="modal-sheet">
+      <div class="eyebrow" id="reflectPeriodLabel">Today</div>
+      <h2 id="reflectTitle">Your Garden of Pause</h2>
+      <p id="reflectNarrative"></p>
+      <p id="reflectDetail" style="font-size:13px;"></p>
+      <button class="btn" id="closeReflect">Close</button>
+    </div>
+  </div>
+
+  <!-- Stone detail modal -->
+  <div class="modal-backdrop" id="stoneModal">
+    <div class="modal-sheet">
+      <div class="eyebrow" id="stoneModalMeta">Beauty · Morning</div>
+      <h3 id="stoneModalNote">Something beautiful caught my attention.</h3>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="btn secondary" id="deleteStoneBtn" style="flex:1;">Remove stone</button>
+        <button class="btn ghost" id="closeStoneModal" style="flex:1;">Close</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     DATA MODEL — everything held in memory for this session
+     (no localStorage / sessionStorage per artifact constraints)
+     ============================================================ */
+  const CATEGORIES = [
+    { id:"beauty",      glyph:"🌿", name:"Beauty",      prompt:"Something beautiful caught my attention.", shape:"round"   },
+    { id:"idea",        glyph:"💡", name:"Idea",        prompt:"A new thought appeared.",                  shape:"crystal" },
+    { id:"confusion",   glyph:"🤔", name:"Confusion",   prompt:"Something made me stop and think.",         shape:"angular" },
+    { id:"gratitude",   glyph:"❤️", name:"Gratitude",   prompt:"I appreciated something.",                  shape:"moss"    },
+    { id:"connection",  glyph:"🙂", name:"Connection",  prompt:"Someone made me smile.",                    shape:"paired"  },
+    { id:"emotion",     glyph:"🌧", name:"Emotion",     prompt:"I felt something deeply.",                  shape:"pool"    },
+    { id:"silence",     glyph:"🌙", name:"Silence",     prompt:"I intentionally slowed down.",              shape:"circle"  },
+    { id:"observation", glyph:"🚶", name:"Observation", prompt:"I noticed something ordinary in a new way.", shape:"pebble"  }
+  ];
+  const LOCATIONS = ["Office","Commute","Home","Cafe","Nature","Online","Meeting","Anywhere"];
+  const DAILY_LIMIT = 3;
+
+  let state = {
+    period: "today",
+    stones: [],           // {id, category, location, note, time, x, y, rot}
+    draft: { category:null, location:null, note:"" },
+    navView: "collect"
+  };
+
+  const $ = (sel, ctx) => (ctx||document).querySelector(sel);
+  const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
+  const live = $("#liveRegion");
+  function announce(msg){ live.textContent = ""; requestAnimationFrame(()=> live.textContent = msg); }
+
+  function timeOfDay(d){
+    const h = d.getHours();
+    if (h < 6) return "Night";
+    if (h < 12) return "Morning";
+    if (h < 18) return "Afternoon";
+    return "Evening";
+  }
+
+  /* ============================================================
+     SCREEN NAVIGATION
+     ============================================================ */
+  function showScreen(id){
+    $$(".screen").forEach(s => s.classList.remove("active"));
+    $("#"+id).classList.add("active");
+  }
+  function setNavActive(view){
+    $$(".nav-btn").forEach(b => b.setAttribute("aria-current", b.dataset.nav === view ? "true":"false"));
+  }
+  function toggleBottomNav(show){
+    $("#bottomNav").style.display = show ? "flex" : "none";
+  }
+
+  $("#beginBtn").addEventListener("click", () => {
+    toggleBottomNav(false);
+    showScreen("screen-period");
+  });
+  $("#viewGardenFromWelcome").addEventListener("click", () => {
+    toggleBottomNav(true);
+    goTo("garden");
+  });
+
+  $$('[data-period]').forEach(card => {
+    card.addEventListener("click", () => {
+      state.period = card.dataset.period;
+      toggleBottomNav(true);
+      goTo("collect");
+    });
+  });
+
+  $$(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.nav === "reflect"){ openReflection(); return; }
+      goTo(btn.dataset.nav);
+    });
+  });
+
+  function goTo(view){
+    state.navView = view;
+    setNavActive(view);
+    if (view === "collect"){ resetCollectFlow(); showScreen("screen-collect"); }
+    if (view === "garden"){ renderGarden(); showScreen("screen-garden"); }
+    if (view === "timeline"){ renderTimeline(); showScreen("screen-timeline"); }
+  }
+
+  /* ============================================================
+     COLLECT FLOW — category → location → note → place stone
+     ============================================================ */
+  const periodLabels = { today:"Today", week:"This week", month:"This month" };
+
+  function resetCollectFlow(){
+    state.draft = { category:null, location:null, note:"" };
+    $("#periodLabel").textContent = periodLabels[state.period];
+    showStep(1);
+    buildCategoryGrid();
+    buildLocationGrid();
+    $("#noteInput").value = "";
+    $("#charCount").textContent = "0";
+    updateNextButton();
+  }
+
+  function buildCategoryGrid(){
+    const grid = $("#categoryGrid");
+    grid.innerHTML = "";
+    CATEGORIES.forEach(cat => {
+      const b = document.createElement("button");
+      b.className = "chip"; b.type = "button";
+      b.setAttribute("aria-pressed","false");
+      b.setAttribute("aria-label", cat.name + ": " + cat.prompt);
+      b.innerHTML = `<span class="glyph" aria-hidden="true">${cat.glyph}</span><span class="name">${cat.name}</span>`;
+      b.addEventListener("click", () => {
+        $$(".chip", grid).forEach(c => c.setAttribute("aria-pressed","false"));
+        b.setAttribute("aria-pressed","true");
+        state.draft.category = cat.id;
+        updateNextButton();
+      });
+      grid.appendChild(b);
+    });
+  }
+
+  function buildLocationGrid(){
+    const grid = $("#locationGrid");
+    grid.innerHTML = "";
+    LOCATIONS.forEach(loc => {
+      const b = document.createElement("button");
+      b.className = "chip"; b.type = "button";
+      b.setAttribute("aria-pressed","false");
+      b.innerHTML = `<span class="name">${loc}</span>`;
+      b.addEventListener("click", () => {
+        const already = b.getAttribute("aria-pressed") === "true";
+        $$(".chip", grid).forEach(c => c.setAttribute("aria-pressed","false"));
+        b.setAttribute("aria-pressed", already ? "false" : "true");
+        state.draft.location = already ? null : loc;
+      });
+      grid.appendChild(b);
+    });
+  }
+
+  let currentStep = 1;
+  function showStep(n){
+    currentStep = n;
+    $("#stepCategory").hidden = n !== 1;
+    $("#stepLocation").hidden = n !== 2;
+    $("#stepNote").hidden = n !== 3;
+    $$("#progressDots span").forEach((d,i) => d.classList.toggle("on", i < n));
+    $("#stepBackBtn").hidden = n === 1;
+    $("#stepNextBtn").textContent = n === 3 ? "Place Stone" : "Continue";
+    updateNextButton();
+    if (n === 1) $("#categoryGrid").querySelector('[aria-pressed="true"]') // no-op, focus mgmt kept simple
+  }
+
+  function updateNextButton(){
+    const btn = $("#stepNextBtn");
+    if (currentStep === 1) btn.disabled = !state.draft.category;
+    else btn.disabled = false;
+  }
+
+  $("#noteInput").addEventListener("input", (e) => {
+    state.draft.note = e.target.value;
+    $("#charCount").textContent = e.target.value.length;
+  });
+
+  $("#stepBackBtn").addEventListener("click", () => showStep(currentStep - 1));
+  $("#collectBack").addEventListener("click", () => { toggleBottomNav(false); showScreen("screen-period"); });
+
+  $("#stepNextBtn").addEventListener("click", () => {
+    if (currentStep < 3){ showStep(currentStep + 1); return; }
+    tryPlaceStone();
+  });
+
+  function todaysStoneCount(){
+    const today = new Date().toDateString();
+    return state.stones.filter(s => new Date(s.time).toDateString() === today).length;
+  }
+
+  function tryPlaceStone(){
+    if (todaysStoneCount() >= DAILY_LIMIT){
+      showLimitPrompt();
+      return;
+    }
+    placeStone();
+  }
+
+  function showLimitPrompt(){
+    const modal = $("#reflectModal");
+    $("#reflectPeriodLabel").textContent = "A gentle limit";
+    $("#reflectTitle").textContent = "Three stones already rest here today.";
+    $("#reflectNarrative").innerHTML =
+      'Which three moments were truly worth placing in your garden? ' +
+      'If this new one matters more than one already placed, visit your Moments list and remove one first.';
+    $("#reflectDetail").textContent = "";
+    modal.classList.add("show");
+  }
+
+  function placeStone(){
+    const cat = CATEGORIES.find(c => c.id === state.draft.category);
+    const stone = {
+      id: "s" + Date.now() + Math.random().toString(36).slice(2,6),
+      category: cat.id,
+      location: state.draft.location,
+      note: state.draft.note.trim(),
+      time: new Date().toISOString(),
+      x: 12 + Math.random() * 76,
+      y: 18 + Math.random() * 66,
+      rot: Math.round(Math.random() * 40 - 20)
+    };
+    state.stones.push(stone);
+    announce("Stone placed in your garden.");
+    goTo("garden");
+    setTimeout(() => animateNewStone(stone.id), 30);
+  }
+
+  /* ============================================================
+     GARDEN — SVG stones on rakeable sand canvas
+     ============================================================ */
+  function stoneShapeSvg(shape, size){
+    const s = size;
+    const shapes = {
+      round:   `<ellipse cx="${s/2}" cy="${s/2}" rx="${s*0.46}" ry="${s*0.36}" fill="var(--stone)"/>`,
+      crystal: `<polygon points="${s*0.5},${s*0.04} ${s*0.86},${s*0.4} ${s*0.66},${s*0.96} ${s*0.34},${s*0.96} ${s*0.14},${s*0.4}" fill="var(--gold)"/>`,
+      angular: `<polygon points="${s*0.1},${s*0.9} ${s*0.05},${s*0.4} ${s*0.4},${s*0.05} ${s*0.75},${s*0.15} ${s*0.95},${s*0.55} ${s*0.6},${s*0.95}" fill="var(--charcoal)" opacity="0.75"/>`,
+      moss:    `<ellipse cx="${s/2}" cy="${s/2}" rx="${s*0.44}" ry="${s*0.4}" fill="var(--moss)"/><ellipse cx="${s*0.4}" cy="${s*0.42}" rx="${s*0.12}" ry="${s*0.08}" fill="var(--sage)" opacity="0.6"/>`,
+      paired:  `<ellipse cx="${s*0.36}" cy="${s*0.56}" rx="${s*0.28}" ry="${s*0.22}" fill="var(--stone)"/><ellipse cx="${s*0.66}" cy="${s*0.42}" rx="${s*0.22}" ry="${s*0.18}" fill="var(--sage)"/>`,
+      pool:    `<ellipse cx="${s/2}" cy="${s/2}" rx="${s*0.48}" ry="${s*0.3}" fill="#7B93A0" opacity="0.75"/>`,
+      circle:  `<circle cx="${s/2}" cy="${s/2}" r="${s*0.44}" fill="none" stroke="var(--charcoal)" stroke-width="2" opacity="0.55" stroke-dasharray="4 3"/>`,
+      pebble:  `<ellipse cx="${s/2}" cy="${s/2}" rx="${s*0.24}" ry="${s*0.2}" fill="var(--stone)"/>`
+    };
+    return shapes[shape] || shapes.round;
+  }
+
+  function renderGarden(){
+    $("#gardenPeriodLabel").textContent = periodLabels[state.period];
+    $("#stoneCountPill").textContent = state.stones.length + (state.stones.length === 1 ? " stone" : " stones");
+    $("#gardenEmpty").style.display = state.stones.length ? "none" : "flex";
+
+    const layer = $("#stoneLayer");
+    layer.innerHTML = "";
+    state.stones.forEach(stone => {
+      const cat = CATEGORIES.find(c => c.id === stone.category);
+      const size = 46;
+      const wrap = document.createElement("div");
+      wrap.className = "stone-svg";
+      wrap.style.left = stone.x + "%";
+      wrap.style.top = stone.y + "%";
+      wrap.style.width = size + "px";
+      wrap.style.height = size + "px";
+      wrap.style.transform = `rotate(${stone.rot}deg)`;
+      wrap.setAttribute("role","listitem");
+      wrap.setAttribute("tabindex","0");
+      wrap.setAttribute("aria-label", cat.name + (stone.note ? ": " + stone.note : ""));
+      wrap.dataset.id = stone.id;
+      wrap.innerHTML = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${stoneShapeSvg(cat.shape, size)}</svg>`;
+      wrap.addEventListener("click", () => openStoneModal(stone.id));
+      wrap.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openStoneModal(stone.id); }});
+      layer.appendChild(wrap);
+    });
+    setupRakeCanvas();
+  }
+
+  function animateNewStone(id){
+    const el = $(`.stone-svg[data-id="${id}"]`);
+    if (!el) return;
+    el.style.transition = "none";
+    el.style.opacity = "0";
+    el.style.transform += " translateY(-14px) scale(.7)";
+    requestAnimationFrame(() => {
+      el.style.transition = `opacity .5s var(--ease), transform .5s var(--ease)`;
+      el.style.opacity = "1";
+      el.style.transform = el.style.transform.replace(" translateY(-14px) scale(.7)", "");
+    });
+  }
+
+  /* Rake canvas: draws soft arcs following pointer, subtle concentric
+     rings already present as a base pattern for stillness. */
+  let rakeCtx, rakeCanvas, rakeReady = false, lastPt = null;
+  function setupRakeCanvas(){
+    rakeCanvas = $("#rakeCanvas");
+    const frame = $("#gardenFrame");
+    const rect = frame.getBoundingClientRect();
+    rakeCanvas.width = rect.width * 2;
+    rakeCanvas.height = rect.height * 2;
+    rakeCtx = rakeCanvas.getContext("2d");
+    rakeCtx.scale(2,2);
+    drawBaseSand(rect.width, rect.height);
+    rakeReady = true;
+
+    rakeCanvas.onpointerdown = (e) => { lastPt = pointerPos(e, rect); };
+    rakeCanvas.onpointermove = (e) => {
+      if (!lastPt || e.buttons === 0 && e.pointerType !== "touch") return;
+      if (e.buttons === 0) return;
+      const p = pointerPos(e, rect);
+      drawRakeLine(lastPt, p);
+      lastPt = p;
+    };
+    rakeCanvas.onpointerup = () => { lastPt = null; };
+    rakeCanvas.onpointerleave = () => { lastPt = null; };
+  }
+  function pointerPos(e, rect){
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+  function drawBaseSand(w, h){
+    rakeCtx.clearRect(0,0,w,h);
+    rakeCtx.strokeStyle = "rgba(43,38,33,0.06)";
+    rakeCtx.lineWidth = 1.4;
+    for (let i = -h; i < w + h; i += 14){
+      rakeCtx.beginPath();
+      rakeCtx.moveTo(i, 0);
+      rakeCtx.lineTo(i + h, h);
+      rakeCtx.stroke();
+    }
+  }
+  function drawRakeLine(a, b){
+    rakeCtx.strokeStyle = "rgba(43,38,33,0.16)";
+    rakeCtx.lineWidth = 2.2;
+    rakeCtx.lineCap = "round";
+    for (let off = -6; off <= 6; off += 4){
+      rakeCtx.beginPath();
+      rakeCtx.moveTo(a.x, a.y + off);
+      rakeCtx.lineTo(b.x, b.y + off);
+      rakeCtx.stroke();
+    }
+  }
+
+  /* Stone detail modal */
+  function openStoneModal(id){
+    const stone = state.stones.find(s => s.id === id);
+    const cat = CATEGORIES.find(c => c.id === stone.category);
+    $("#stoneModalMeta").textContent = `${cat.name} · ${timeOfDay(new Date(stone.time))}${stone.location ? " · " + stone.location : ""}`;
+    $("#stoneModalNote").textContent = stone.note || cat.prompt;
+    $("#stoneModal").classList.add("show");
+    $("#deleteStoneBtn").onclick = () => {
+      state.stones = state.stones.filter(s => s.id !== id);
+      $("#stoneModal").classList.remove("show");
+      renderGarden();
+      announce("Stone removed.");
+    };
+  }
+  $("#closeStoneModal").addEventListener("click", () => $("#stoneModal").classList.remove("show"));
+
+  /* ============================================================
+     TIMELINE / MOMENTS LIST
+     ============================================================ */
+  function renderTimeline(){
+    const list = $("#timelineList");
+    list.innerHTML = "";
+    const count = todaysStoneCount();
+    $("#limitLine").textContent = state.stones.length
+      ? `${count} of ${DAILY_LIMIT} stones placed today. Curate — don't collect everything.`
+      : "";
+    $("#timelineEmptyState").hidden = state.stones.length !== 0;
+
+    [...state.stones].sort((a,b) => new Date(b.time) - new Date(a.time)).forEach(stone => {
+      const cat = CATEGORIES.find(c => c.id === stone.category);
+      const item = document.createElement("div");
+      item.className = "timeline-item";
+      const d = new Date(stone.time);
+      item.innerHTML = `
+        <span class="glyph" aria-hidden="true">${cat.glyph}</span>
+        <span style="flex:1;">
+          <div class="meta">${timeOfDay(d)} · ${cat.name}${stone.location ? " · " + stone.location : ""}</div>
+          <div class="note">${stone.note || cat.prompt}</div>
+        </span>
+        <span class="row-actions">
+          <button class="icon-btn" aria-label="Remove this stone" data-del="${stone.id}">✕</button>
+        </span>`;
+      list.appendChild(item);
+    });
+
+    $$("[data-del]", list).forEach(b => {
+      b.addEventListener("click", () => {
+        state.stones = state.stones.filter(s => s.id !== b.dataset.del);
+        renderTimeline();
+        announce("Stone removed.");
+      });
+    });
+  }
+
+  /* ============================================================
+     END-OF-PERIOD REFLECTION — simple rule-based narrative, no AI
+     ============================================================ */
+  function tallyByCategory(){
+    const tally = {};
+    state.stones.forEach(s => tally[s.category] = (tally[s.category]||0) + 1);
+    return tally;
+  }
+  function tallyByLocation(){
+    const tally = {};
+    state.stones.forEach(s => { if (s.location) tally[s.location] = (tally[s.location]||0) + 1; });
+    return tally;
+  }
+  function topKey(tally){
+    let best = null, bestN = 0;
+    Object.entries(tally).forEach(([k,n]) => { if (n > bestN){ best = k; bestN = n; }});
+    return best;
+  }
+  const CATEGORY_NARRATIVE = {
+    beauty:      "your attention often rested on something beautiful",
+    idea:        "new thoughts kept arriving, quietly, without being asked for",
+    confusion:   "you paused most often when something didn't quite make sense",
+    gratitude:   "you found gratitude in ordinary moments",
+    connection:  "small moments of connection kept catching you off guard",
+    emotion:     "you let yourself feel things fully, more than once",
+    silence:     "you chose stillness on purpose, more than once",
+    observation: "you noticed the ordinary in a new way"
+  };
+  const LOCATION_NARRATIVE = {
+    Office: "many of your moments appeared while at work",
+    Commute: "your commute held more than you expected",
+    Home: "home offered more quiet moments than anywhere else",
+    Cafe: "cafés kept giving you something to notice",
+    Nature: "nature asked for your attention more than once",
+    Online: "even your time online held a few real moments",
+    Meeting: "many of your moments appeared while working with others",
+    Anywhere: "these moments found you everywhere, not any one place"
+  };
+
+  function openReflection(){
+    const modal = $("#reflectModal");
+    $("#reflectPeriodLabel").textContent = periodLabels[state.period];
+    $("#reflectTitle").textContent = "Your Garden of Pause";
+
+    if (!state.stones.length){
+      $("#reflectNarrative").textContent = "No stones rest here yet. Whenever a moment stops you, come back and place one.";
+      $("#reflectDetail").textContent = "";
+      modal.classList.add("show");
+      return;
+    }
+    const catTop = topKey(tallyByCategory());
+    const locTop = topKey(tallyByLocation());
+    let sentence = "This " + (state.period === "today" ? "day" : state.period === "week" ? "week" : "month") + " " +
+      (CATEGORY_NARRATIVE[catTop] || "a few quiet moments became meaningful") + ".";
+    let detail = locTop ? (LOCATION_NARRATIVE[locTop] || "") : "Several quiet moments became meaningful, wherever they found you.";
+    $("#reflectNarrative").textContent = sentence;
+    $("#reflectDetail").textContent = detail.charAt(0).toUpperCase() + detail.slice(1) + ".";
+    modal.classList.add("show");
+  }
+  $("#closeReflect").addEventListener("click", () => $("#reflectModal").classList.remove("show"));
+
+  /* ============================================================
+     SETTINGS — high contrast toggle
+     ============================================================ */
+  $("#contrastToggle").addEventListener("click", (e) => {
+    const on = document.documentElement.classList.toggle("high-contrast");
+    e.target.setAttribute("aria-pressed", on ? "true" : "false");
+    e.target.textContent = on ? "Standard contrast" : "High contrast";
+  });
+
+  /* Respect reduced motion: ambient hint text stays neutral */
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    $("#ambientHint").textContent = "The garden holds still.";
+  }
+
+  /* Initial state */
+  toggleBottomNav(false);
+})();
+</script>
+</body>
+</html>
